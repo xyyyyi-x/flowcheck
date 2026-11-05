@@ -1,7 +1,7 @@
 # 开发进度
 
 更新时间：2026-11-05（Asia/Shanghai）。
-当前状态：T01–T10 已通过验证（真实 Compose broker 链路留待 T14）；T11 进行中。
+当前状态：T01–T11 已通过验证（真实 Compose 链路留待 T14）；T12 进行中。
 执行方式：用户后续通过Claude Code接DeepSeek实施。
 
 | 任务 | 内容 | 状态 | 验证证据 |
@@ -16,7 +16,7 @@
 | T08 | HTTP/脱敏/执行器 | 已完成 | transport/redaction/runner 单测；115 unit passed |
 | T09 | 快照/幂等提交 | 已完成 | 提交/幂等/快照集成测试；全量 161 passed |
 | T10 | Worker/outbox/中断恢复 | 已完成（真实 broker 待 T14） | claim/sink/outbox/reconcile 集成；全量 178 passed |
-| T11 | 报告/SSE | 未开始 | 无 |
+| T11 | 报告/SSE | 已完成 | 报告/SSE 集成测试；全量 187 passed |
 | T12 | 前端账号/配置 | 未开始 | 无 |
 | T13 | 前端用例/执行/报告 | 未开始 | 无 |
 | T14 | Demo/部署/P0验收 | 未开始 | 无 |
@@ -35,7 +35,7 @@ Vue 3、PostgreSQL、模块化单体、项目owner隔离、本地OpenAPI JSON、
 
 ## 当前待办
 
-继续 T11：安全报告、持久化 SSE 与断线恢复。
+继续 T12：前端登录、项目、环境与 OpenAPI 导入。
 
 ## 任务记录
 
@@ -244,6 +244,24 @@ Vue 3、PostgreSQL、模块化单体、项目owner隔离、本地OpenAPI JSON、
   避免真实等待 300/330 秒。
 - 遗留：真实 broker 端到端在 T14 验收；dispatcher 发布路径尚未对真实 Redis 运行。
 - 下一任务：T11 报告、持久化 SSE 与恢复。
+
+### T11 报告、持久化 SSE 与恢复（2026-11-05）
+
+- 涉及文件：`app/modules/runs/{schemas,repository,sse,router}.py`、
+  `app/core/security.py`、`app/modules/auth/deps.py`、`infra/nginx.conf`、
+  `tests/integration/{test_reports,test_sse}.py`。
+- 实现需求/验收：A09、A17；G3 的报告侧。
+- 实际命令与结果：`pytest tests/unit tests/integration -q` → 187 passed；Ruff/format 通过。
+- 关键实现：
+  - `RunSummary/RunReport` 仅序列化安全字段；counts 由真实步骤 GROUP BY / 内存统计，
+    和 total 一致；报告步骤按 position 升序；终态不残留 pending/running。
+  - 运行列表按 created_at DESC,id DESC；status 过滤非法值 422；owner 404。
+  - SSE：独立短 Session 每批查询 ≤100，等待时释放连接；事件按 id 升序；
+    `after` 续读；心跳 15s；连接最长 60s；JWT 过期关闭；终态事件发完后关闭。
+    SSE 鉴权在返回 StreamingResponse 前用短 Session 完成，不持有连接。
+  - Nginx 仅对 events 路径关闭 buffering/缓存/gzip，read timeout 75s。
+- 测试：事件回放、after 去重、401/404、心跳与过期注入时钟、中文不转义。
+- 下一任务：T12 前端登录、项目、环境与导入。
 
 ## 每任务追加记录模板
 

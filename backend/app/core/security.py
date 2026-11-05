@@ -51,7 +51,7 @@ def issue_access_token(
     return jwt.encode(payload, secret or _secret(), algorithm=ALGORITHM)
 
 
-def decode_access_token(token: str, secret: str | None = None) -> uuid.UUID:
+def decode_token(token: str, secret: str | None = None) -> tuple[uuid.UUID, datetime]:
     try:
         payload = jwt.decode(
             token,
@@ -59,6 +59,11 @@ def decode_access_token(token: str, secret: str | None = None) -> uuid.UUID:
             algorithms=[ALGORITHM],
             options={"require": ["sub", "iat", "exp"]},
         )
-        return uuid.UUID(payload["sub"])
-    except (jwt.PyJWTError, ValueError, KeyError) as exc:
+        return uuid.UUID(payload["sub"]), datetime.fromtimestamp(int(payload["exp"]), tz=UTC)
+    except (jwt.PyJWTError, ValueError, KeyError, TypeError) as exc:
         raise AppError("UNAUTHORIZED", "认证已失效，请重新登录", 401) from exc
+
+
+def decode_access_token(token: str, secret: str | None = None) -> uuid.UUID:
+    user_id, _ = decode_token(token, secret)
+    return user_id
