@@ -1,4 +1,4 @@
-# 接口回归测试平台 Implementation Plan
+# FlowCheck 接口回归测试平台 Implementation Plan
 
 > **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:subagent-driven-development (recommended) or superpowers:executing-plans to implement this plan task-by-task. Steps use checkbox (- [ ]) syntax for tracking.
 > 外部 Claude Code 没有这些 skills 时，按 CLAUDE.md 和本计划等效执行；不要求安装技能或使用特定模型。

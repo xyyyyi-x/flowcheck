@@ -1,3 +1,4 @@
+# 保留部署标识，FlowCheck 更名后继续使用现有容器和数据卷。
 name: arp-dev
 
 services:

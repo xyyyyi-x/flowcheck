@@ -1,4 +1,4 @@
-# API v1、执行 DSL 与页面契约
+# FlowCheck API v1、执行 DSL 与页面契约
 
 此文档与设计规格共同约束实现。所有路径除特别说明均以 /api/v1 为前缀。
 参数名称采用 snake_case；前端在 API 边界保留 snake_case，避免重复映射。

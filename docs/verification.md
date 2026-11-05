@@ -1,4 +1,4 @@
-# 验证记录
+# FlowCheck 验证记录
 
 验证日期：2026-11-05（Asia/Shanghai）
 代码版本：`6a478f8`（T01–T15 共 15 个任务提交 + 最终文档提交，`git log --oneline` 可复查）
@@ -188,3 +188,25 @@ run=interrupted / WORKER_INTERRUPTED；step1 passed、step2 error(WORKER_INTERRU
 - Redis 停机：queued + outbox attempt=1/BROKER_UNAVAILABLE；恢复后补发并 passed。
 - 统计接口在 arp-e2e 实测：首次 cache_hit=false，第二次 cache_hit=true，通过率 1.0
   （4 passed / 4+0；另有 1 interrupted 不计入分母）。
+
+## FlowCheck 命名与目录迁移复核（2026-11-05）
+
+项目已从旧目录迁移至 D:/开发学习/flowcheck，.git与本地.env保留，旧目录不再存在。
+网页、API文档、包元数据与项目文档统一FlowCheck；Compose仍使用arp-dev部署标识以沿用数据卷。
+Python lockfile逐包对比确认仅项目名变化，依赖版本、来源及哈希保持一致。
+
+本次实际执行：
+- backend：python -m uv run --frozen --no-sync pytest tests/unit -q → 115 passed。
+- demo-api：python -m uv run --frozen --no-sync pytest tests -q → 4 passed。
+- frontend：npm run test:unit -- --run → 25 passed。
+- Ruff、前端生产构建、docker compose config --quiet通过。
+- Docker Desktop曾在镜像导出/容器替换期间失去响应；官方正常重启后再次卡住，
+  经用户明确授权结束本次构建客户端和Desktop/backend后重新启动恢复。
+- 使用已构建镜像执行docker compose up -d --no-deps api web成功，不再重复构建。
+- GET http://127.0.0.1:8080/ → 200，title=FlowCheck · 接口回归测试平台。
+- GET http://127.0.0.1:8000/openapi.json → 200，info.title=FlowCheck · 接口回归测试平台。
+- python scripts/smoke.py → run 4af5c77c-978c-485d-9509-813cf0995bf1，五步全部passed。
+
+目录移动后原本地虚拟环境启动器引用旧绝对路径，已仅重建backend/.venv与demo-api/.venv并用冻结依赖恢复。
+未删除数据库/其他数据卷，未重置WSL，未更改测试目标或登录凭据。
+本次未重跑完整集成/Playwright/强杀实验；这些结果仍以之前对应记录为准。

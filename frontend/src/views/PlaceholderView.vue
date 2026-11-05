@@ -2,7 +2,7 @@
 
 <template>
   <main class="placeholder">
-    <h1>接口回归测试平台</h1>
+    <h1>FlowCheck · 接口回归测试平台</h1>
     <p>前端骨架已就绪，功能页面将在后续任务中实现。</p>
   </main>
 </template>

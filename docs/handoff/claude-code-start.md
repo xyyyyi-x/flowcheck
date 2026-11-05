@@ -1,4 +1,4 @@
-# Claude Code 开工与续接提示词
+# FlowCheck Claude Code 开工与续接提示词
 
 适用：用户用Claude Code接DeepSeek实施本项目。此文档不包含模型供应商密钥或接入设置。
 选择模型与接入由用户自行配置；开发计划不依赖付费AI API，也不要求产品包含LLM。
@@ -6,7 +6,7 @@
 ## 1. 首次开工（复制下面整段）
 
 ~~~text
-请在当前仓库实现“接口回归测试平台”。用户已确认Python/FastAPI后端+简单Vue前端，
+请在当前仓库实现“FlowCheck 接口回归测试平台”。用户已确认Python/FastAPI后端+简单Vue前端，
 目标是Python后端实习项目。你是实现者，必须依据仓库文档工作，不要重新选题。
 
 先依次读取：

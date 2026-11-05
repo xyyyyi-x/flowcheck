@@ -30,7 +30,9 @@ def create_app(settings: Settings | None = None) -> FastAPI:
         finally:
             await engine.dispose()
 
-    app = FastAPI(title="接口回归测试平台", version="0.1.0", docs_url="/docs", lifespan=lifespan)
+    app = FastAPI(
+        title="FlowCheck · 接口回归测试平台", version="0.1.0", docs_url="/docs", lifespan=lifespan
+    )
     app.state.settings = resolved
     app.add_middleware(RequestContextMiddleware)
     if resolved.allowed_cors_origins:

@@ -1,7 +1,7 @@
 [project]
-name = "api-regression-platform"
+name = "flowcheck-api"
 version = "0.1.0"
-description = "API regression testing platform backend"
+description = "FlowCheck API regression testing platform backend"
 requires-python = ">=3.12,<3.13"
 dependencies = [
     "fastapi>=0.115,<1",

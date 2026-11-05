@@ -1,4 +1,4 @@
-# 开发进度
+# FlowCheck 开发进度
 
 更新时间：2026-11-05（Asia/Shanghai）。
 当前状态：T01–T15 全部完成；P0 验收 A01–A19 通过（A18 窄屏未完整验证），P1 A20 通过。
@@ -26,7 +26,7 @@ docs/verification.md。
 
 ## 已确认
 
-选题：接口回归测试平台；带简单前端；主要服务Python后端实习项目展示；
+选题：FlowCheck 接口回归测试平台；带简单前端；主要服务Python后端实习项目展示；
 本聊天负责详细计划，用户交给Claude Code接DeepSeek实施。
 
 ## 默认设计
@@ -370,3 +370,21 @@ Commit：
 遗留问题：
 下一任务：
 ~~~
+
+## 项目命名调整（2026-11-05）
+
+- 项目正式名称：FlowCheck 接口回归测试平台；目标仓库/文件夹名：flowcheck。
+- 已统一网页标题、登录页、侧栏、OpenAPI 标题、包名、项目文档和锁文件项目元数据。
+- Python 锁文件逐包比对确认：依赖版本、来源、哈希保持不变。
+- 本次验证：后端单元测试 115 passed；前端单元测试 25 passed；Ruff 与前端生产构建通过。
+- Compose 保留 arp-dev 部署标识，继续使用现有数据库卷。
+- 目录更名已完成：结束相关占用子进程后，项目已移动到 D:\开发学习\flowcheck；文件监视器主程序已恢复。
+
+- 本次运行部署复核未通过：执行 docker compose up --build -d --no-deps api web 时，Docker Desktop 引擎返回容器查询500，构建最终以 rpc Unavailable / EOF 退出；Web HTTP检查超时。尚未重启Docker Desktop（会影响其他项目）。代码层改名与本地测试通过不等于运行中的容器已完成更新。
+
+- 恢复复核已完成：按用户授权结束占用子进程，短暂暂停文件监视器主程序完成目录更名后均已恢复。
+- Docker Desktop 正常重启曾再次卡住，结束本次构建客户端及Desktop/backend后恢复；未重置WSL、未删除数据卷。
+- 已在新目录使用现成镜像启动API/Web；网页与OpenAPI标题均为 FlowCheck · 接口回归测试平台（HTTP 200）。
+- 原数据库、用户和演示项目保留；smoke运行 4af5c77c-978c-485d-9509-813cf0995bf1 的五步全部passed。
+- 已重建backend与demo-api本地虚拟环境，解决目录迁移后的uv启动器旧路径问题；新目录下后端115、Demo4、前端25测试通过。
+- 后续开发请在Claude Code/Codex中打开新目录 D:/开发学习/flowcheck。

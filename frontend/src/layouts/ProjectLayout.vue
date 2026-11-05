@@ -35,7 +35,7 @@ function logout(): void {
 <template>
   <div class="layout">
     <aside class="sidebar">
-      <div class="brand">接口回归测试平台</div>
+      <div class="brand">FlowCheck · 接口回归测试平台</div>
       <div v-if="project" class="project-name">{{ project.name }}</div>
       <el-menu :default-active="String(route.name)" router>
         <el-menu-item :index="`/projects/${projectId}/overview`">项目概览</el-menu-item>

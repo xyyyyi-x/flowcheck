@@ -1,4 +1,4 @@
-# 演示脚本
+# FlowCheck 演示脚本
 
 前置：已按 README 启动 Compose 并运行 `python scripts/seed_demo.py`。
 

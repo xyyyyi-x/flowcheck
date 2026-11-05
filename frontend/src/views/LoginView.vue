@@ -36,7 +36,7 @@ async function submit(): Promise<void> {
   <div class="auth-page">
     <form class="card" @submit.prevent="submit">
       <h1>登录</h1>
-      <p class="sub">接口回归测试平台</p>
+      <p class="sub">FlowCheck · 接口回归测试平台</p>
       <label>用户名</label>
       <el-input v-model="username" autocomplete="username" placeholder="3-32 位字母数字下划线" />
       <label>密码</label>

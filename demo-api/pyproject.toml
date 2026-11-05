@@ -1,5 +1,5 @@
 [project]
-name = "arp-demo-api"
+name = "flowcheck-demo-api"
 version = "0.1.0"
 description = "Article demo service under regression test"
 requires-python = ">=3.12,<3.13"
