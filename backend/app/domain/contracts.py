@@ -5,6 +5,7 @@ from __future__ import annotations
 import json
 import re
 import uuid
+from dataclasses import dataclass
 from typing import Annotated, Any, Literal
 
 from pydantic import (
@@ -41,6 +42,35 @@ REQUEST_MAX_BYTES = 65536
 
 class DslValidationError(ValueError):
     pass
+
+
+@dataclass
+class RenderedRequest:
+    method: str
+    url: str
+    headers: dict[str, str]
+    json_body: Any
+    path_template: str
+    query_keys: list[str]
+    timeout_s: int
+
+
+@dataclass
+class ResponseData:
+    status_code: int
+    headers: dict[str, str]
+    body_json: Any
+    is_json: bool
+    elapsed_ms: float
+
+
+@dataclass
+class AssertionOutcome:
+    type: str
+    passed: bool
+    selector: str | None = None
+    expected_safe: Any = None
+    actual_safe: Any = None
 
 
 def _validate_name(name: str) -> str:

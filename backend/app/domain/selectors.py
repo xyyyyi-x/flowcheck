@@ -60,3 +60,46 @@ def is_valid_selector(selector: str) -> bool:
         return True
     except SelectorError:
         return False
+
+
+class SelectorMissing(KeyError):
+    def __init__(self, selector: str, detail: str) -> None:
+        super().__init__(detail)
+        self.selector = selector
+        self.detail = detail
+
+
+class ExtractionInvalid(ValueError):
+    pass
+
+
+def resolve_selector(document, selector: str):
+    tokens = parse_selector(selector)
+    current = document
+    for token in tokens:
+        if isinstance(token, int):
+            if not isinstance(current, list) or token >= len(current):
+                raise SelectorMissing(selector, "数组索引不存在")
+            current = current[token]
+        else:
+            if not isinstance(current, dict) or token not in current:
+                raise SelectorMissing(selector, "字段不存在")
+            current = current[token]
+    return current
+
+
+def _is_json_scalar(value) -> bool:
+    return not isinstance(value, (dict, list, tuple, set))
+
+
+def extract_variables(extractors, document) -> dict:
+    extracted: dict = {}
+    for extractor in extractors:
+        value = resolve_selector(document, extractor.selector)
+        if extractor.is_secret:
+            if not isinstance(value, str) or not value:
+                raise ExtractionInvalid("secret 提取必须得到非空字符串")
+        elif not _is_json_scalar(value):
+            raise ExtractionInvalid("普通提取只接受 JSON 标量")
+        extracted[extractor.name] = value
+    return extracted

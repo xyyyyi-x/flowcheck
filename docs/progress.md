@@ -1,7 +1,7 @@
 # 开发进度
 
 更新时间：2026-11-05（Asia/Shanghai）。
-当前状态：T01–T06 已通过验证；T07 进行中。
+当前状态：T01–T07 已通过验证；T08 进行中。
 执行方式：用户后续通过Claude Code接DeepSeek实施。
 
 | 任务 | 内容 | 状态 | 验证证据 |
@@ -12,7 +12,7 @@
 | T04 | 环境加密/secret协议 | 已完成 | 环境/加密测试通过；全量 40 passed |
 | T05 | DSL/用例CRUD | 已完成 | DSL/selectors/cases 测试通过；全量 85 passed |
 | T06 | OpenAPI导入 | 已完成 | 解析/导入/并发测试通过；全量 104 passed |
-| T07 | 渲染/取值/断言 | 未开始 | 无 |
+| T07 | 渲染/取值/断言 | 已完成 | 纯函数测试 91 unit passed |
 | T08 | HTTP/脱敏/执行器 | 未开始 | 无 |
 | T09 | 快照/幂等提交 | 未开始 | 无 |
 | T10 | Worker/outbox/中断恢复 | 未开始 | 无 |
@@ -35,7 +35,7 @@ Vue 3、PostgreSQL、模块化单体、项目owner隔离、本地OpenAPI JSON、
 
 ## 当前待办
 
-继续 T07：模板渲染、受限取值、JSON 断言纯逻辑。
+继续 T08：有界 HTTP transport、脱敏与线性执行器。
 
 ## 任务记录
 
@@ -161,6 +161,23 @@ Vue 3、PostgreSQL、模块化单体、项目owner隔离、本地OpenAPI JSON、
   - warnings 截断到 100 条并附截断说明。
 - 调试记录：导入测试中“非法 operation”文档被完整校验拦截，数据库无残留行（符合预期）。
 - 下一任务：T07 模板渲染、选择器取值与断言纯逻辑。
+
+### T07 模板渲染、取值和断言纯逻辑（2026-11-05）
+
+- 涉及文件：`app/domain/{template,selectors,assertions,contracts}.py`、
+  `tests/unit/{test_template,test_selectors,test_assertions}.py`。
+- 实现需求/验收：A06、A07 的执行语义基础。
+- 实际命令与结果：`pytest tests/unit -q` → 91 passed；Ruff/format 通过。
+- 关键实现：
+  - 整段 `{{name}}` 保留原生标量；嵌入模板按 true/false/null/JSON 数字转字符串。
+  - 不递归解释变量值、不渲染字典键、不修改原始定义；缺变量抛 `VariableUndefined`。
+  - path_params 逐参数 URL 编码；query 键值编码；step header 大小写不敏感覆盖 common；
+    渲染后再校验最终 origin 未改变。
+  - `json_equals` 先渲染 expected；bool 与数字不相等，1 与 1.0 相等；
+    对象键序无关、数组顺序敏感；缺选择器判失败而不抛错。
+  - `response_time_lt` 使用未取整浮点毫秒严格小于；404 期望 404 可通过。
+  - 提取器：secret 必须非空字符串；普通提取只接受 JSON 标量。
+- 下一任务：T08 有界 HTTP、脱敏与线性执行器。
 
 ## 每任务追加记录模板
 
