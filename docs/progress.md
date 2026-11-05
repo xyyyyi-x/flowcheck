@@ -1,15 +1,15 @@
 # 开发进度
 
 更新时间：2026-11-05（Asia/Shanghai）。
-当前状态：T01 已通过验证；T02 进行中。
+当前状态：T01–T04 已通过验证；T05 进行中。
 执行方式：用户后续通过Claude Code接DeepSeek实施。
 
 | 任务 | 内容 | 状态 | 验证证据 |
 |---|---|---|---|
 | T01 | 工程/配置/健康接口 | 已完成 | 12 unit passed；Ruff/format/前端构建/compose config 通过 |
-| T02 | 数据库/迁移/测试底座 | 未开始 | 无 |
-| T03 | 认证/项目/owner | 未开始 | 无 |
-| T04 | 环境加密/secret协议 | 未开始 | 无 |
+| T02 | 数据库/迁移/测试底座 | 已完成 | 6 integration passed（真实 PG）；Compose test 18 passed |
+| T03 | 认证/项目/owner | 已完成 | auth/owner 集成测试通过；全量 40 passed |
+| T04 | 环境加密/secret协议 | 已完成 | 环境/加密测试通过；全量 40 passed |
 | T05 | DSL/用例CRUD | 未开始 | 无 |
 | T06 | OpenAPI导入 | 未开始 | 无 |
 | T07 | 渲染/取值/断言 | 未开始 | 无 |
@@ -35,7 +35,7 @@ Vue 3、PostgreSQL、模块化单体、项目owner隔离、本地OpenAPI JSON、
 
 ## 当前待办
 
-继续 T02：ORM 模型、Alembic 初始迁移、真实 PostgreSQL 集成测试底座与 ready 检查。
+继续 T05：流程 DSL 校验、受限选择器与用例 CRUD。
 
 ## 任务记录
 
@@ -66,6 +66,63 @@ Vue 3、PostgreSQL、模块化单体、项目owner隔离、本地OpenAPI JSON、
 - 遗留问题：`starlette.testclient` 对 httpx 发出弃用提示，不影响测试；后续集成测试用
   ASGITransport，避免依赖 TestClient。
 - 下一任务：T02 数据库模型、迁移与集成测试底座。
+
+### T02 数据库模型、迁移与集成测试底座（2026-11-05）
+
+- 涉及文件：`app/db/{models,base,sync_session}.py`、`migrations/env.py`、
+  `migrations/versions/0001_initial.py`、`alembic.ini`、`tests/integration/{conftest,db_utils}.py`、
+  `tests/integration/test_migrations.py`、`tests/integration/test_health_ready.py`、
+  `compose.test.yaml`、`backend/Dockerfile`。
+- 实现需求/验收：设计第 6 节全部表与约束；ready 真实 `SELECT 1`；A09/A19 的数据基础。
+- 实例：隔离 test 容器 `arp-test-db`（PostgreSQL 17.5）与 `arp-test-redis`（Redis 7.4），
+  宿主测试端口 55488/56500（Windows 排除端口段规避 55432/56379）。
+- 实际命令与结果：
+  - `APP_TEST_DATABASE_URL=... pytest tests/integration/test_migrations.py -q` → 4 passed。
+  - `... pytest tests/integration -q` → 6 passed（含 ready 503 反例）。
+  - `docker compose -f compose.yaml -f compose.test.yaml run --rm test pytest tests/integration -q`
+    → 18 passed（T02+T03 代码镜像）。
+  - `ruff check` / `ruff format --check` → 通过。
+- 关键实现：
+  - 唯一约束 `(project_id,idempotency_key)`、`(run_id,position)`、`(project_id,name)`；
+    `runs` 索引 `(project_id, created_at DESC, id DESC)` 与 `(status, created_at)`；
+    `run_events.id BIGSERIAL`。
+  - 状态值使用 CHECK 约束；外键均 RESTRICT，不做物理删除。
+  - Alembic URL 由 `APP_TEST_DATABASE_URL`/`APP_SYNC_DATABASE_URL` 注入，无硬编码密码。
+- 调试记录：
+  - 原始迁移测试漏传 `cases.version`/`environments.version`，报 NotNullViolation；修正测试数据，
+    未放宽数据库约束。
+  - pytest-asyncio 测试与 fixture 事件循环不一致导致 asyncpg 在已关闭 loop 上清理连接；
+    固定 `asyncio_default_test_loop_scope=session`。
+  - TRUNCATE 被遗留 idle-in-transaction 连接阻塞；集成 fixture 在隔离 test 库中断开其它连接后清理。
+- 设计调整：后端镜像不再从 ghcr.io 拉取 uv 层（实测 19.34MB 下载 140 秒仍未完成），
+  改为 `pip install uv==0.13.7` 使用同一镜像源。
+- 下一任务：T03 认证与项目 owner 边界。
+
+### T03 注册登录、项目与 owner 边界（2026-11-05）
+
+- 涉及文件：`app/core/security.py`、`app/core/schemas.py`、
+  `app/modules/auth/*`、`app/modules/projects/*`、`tests/integration/test_auth.py`、
+  `tests/integration/test_project_ownership.py`、`tests/factories.py`。
+- 实现需求/验收：A01、A02（项目层）；注册/登录/me、owner 隔离、分页边界。
+- 实际命令与结果：`pytest tests/unit tests/integration -q` → 40 passed；Ruff 通过。
+- 关键实现：Argon2（pwdlib）、HS256 + 30 分钟 exp/iat/sub、HTTPBearer；
+  用户名小写归一化唯一；`require_owned_project` 作为后续全部子资源依赖；
+  `extra=forbid` 拒绝请求体中的 `owner_id`。
+- 未运行：前端 401 清 Token（T12）。
+- 下一任务：T04 环境加密与 secret 协议。
+
+### T04 环境、加密与 secret 编辑协议（2026-11-05）
+
+- 涉及文件：`app/core/{crypto,dependencies}.py`、`app/modules/environments/*`、
+  `tests/unit/test_crypto.py`、`tests/integration/test_environments.py`。
+- 实现需求/验收：A03；C02/C03 的 secret 保留/替换/移除、origin 白名单。
+- 实际命令与结果：`pytest tests/unit tests/integration -q` → 40 passed；Ruff/format 通过。
+- 关键实现：`config_ciphertext` 存 Fernet 密文的 variables+common_headers；
+  GET 中 secret `value=null,has_value=true`；认证 header 强制 secret；
+  仅接受 `TARGET_ORIGINS` 中规范化后的 exact origin；版本冲突 409；
+  密文断言中不存在已知 secret 明文。
+- 遗留问题：`GET /target-origins` 目前要求登录（依 C06 全局规则），前端 T12 接入。
+- 下一任务：T05 流程 DSL 校验与用例 CRUD。
 
 ## 每任务追加记录模板
 

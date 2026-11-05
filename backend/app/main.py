@@ -44,12 +44,14 @@ def create_app(settings: Settings | None = None) -> FastAPI:
     register_exception_handlers(app)
 
     from app.modules.auth.router import router as auth_router
+    from app.modules.environments.router import router as environments_router
     from app.modules.health.router import router as health_router
     from app.modules.projects.router import router as projects_router
 
     app.include_router(health_router, prefix="/api/v1")
     app.include_router(auth_router, prefix="/api/v1")
     app.include_router(projects_router, prefix="/api/v1")
+    app.include_router(environments_router, prefix="/api/v1")
     return app
 
 
