@@ -1,0 +1,44 @@
+services:
+  test-db:
+    image: postgres:17-alpine
+    environment:
+      POSTGRES_DB: test
+      POSTGRES_USER: test
+      POSTGRES_PASSWORD: test
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U test -d test"]
+      interval: 3s
+      timeout: 3s
+      retries: 30
+    profiles: ["test"]
+
+  test-redis:
+    image: redis:7.4-alpine
+    command: ["redis-server", "--save", "", "--appendonly", "no"]
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 3s
+      timeout: 3s
+      retries: 30
+    profiles: ["test"]
+
+  test:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+      target: test
+    environment:
+      APP_TEST_DATABASE_URL: postgresql+psycopg://test:test@test-db:5432/test
+      APP_DATABASE_URL: postgresql+asyncpg://test:test@test-db:5432/test
+      APP_SYNC_DATABASE_URL: postgresql+psycopg://test:test@test-db:5432/test
+      APP_REDIS_BROKER_URL: redis://test-redis:6379/0
+      APP_REDIS_CACHE_URL: redis://test-redis:6379/1
+      APP_JWT_SECRET: test-only-secret-that-is-long-enough-000000
+      APP_ENCRYPTION_KEY: u5nM7Qp0jXk2r8T4wY6zA1bC3dE5fG7hI9jK0lM2nO4=
+      TARGET_ORIGINS: http://demo-api:8001
+    depends_on:
+      test-db:
+        condition: service_healthy
+      test-redis:
+        condition: service_healthy
+    profiles: ["test"]

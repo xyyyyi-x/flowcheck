@@ -23,6 +23,6 @@ async def ready(request: Request) -> JSONResponse:
     try:
         async with session_factory() as session:
             await session.execute(text("SELECT 1"))
-    except SQLAlchemyError:
+    except (SQLAlchemyError, OSError):
         return JSONResponse(status_code=503, content={"status": "unavailable"})
     return JSONResponse(status_code=200, content={"status": "ok"})
