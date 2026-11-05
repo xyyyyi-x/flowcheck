@@ -24,7 +24,13 @@ celery_app.conf.update(
     worker_concurrency=2,
     task_reject_on_worker_lost=False,
     broker_connection_retry_on_startup=True,
-    broker_transport_options={"socket_connect_timeout": 3, "socket_timeout": 3},
+    # 发布侧不无限重试；socket 连接/读写与重试上限都压到 3 秒级。
+    task_publish_retry=False,
+    broker_transport_options={
+        "socket_connect_timeout": 3,
+        "socket_timeout": 3,
+        "retry_policy": {"max_retries": 0},
+    },
     task_soft_time_limit=310,
     task_time_limit=330,
 )

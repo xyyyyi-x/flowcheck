@@ -22,6 +22,36 @@
 - 开发环境 `compose.yaml` 固定 `name: arp-dev`；E2E 用 `--project-name arp-e2e` 覆盖，
   依赖 Compose 对卷/网络的自动前缀隔离。数据库与 Redis 不映射宿主端口。
 
+### D006 后端镜像构建目标
+
+- 现象：后端 Dockerfile 最后一个 stage 是 `test`（CMD 为 pytest），Compose 默认构建最后
+  stage，导致 api 容器启动后直接跑测试、健康检查失败。
+- 修正：compose.yaml 中 migrate/api/worker/dispatcher 显式 `target: base`；`test` 服务使用
+  `target: test`。已通过 `docker compose up --build -d` 与健康检查验证。
+
+### D007 Compose 环境文件与 E2E 隔离
+
+- 现象：服务内硬编码 `env_file: .env`，`--env-file .env.e2e` 只影响变量插值，容器仍读开发
+  密码，导致 arp-e2e 的 migrate 数据库认证失败。
+- 修正：移除硬编码 env_file，所有服务所需变量通过 `${VAR:?}` / `${VAR:-default}` 插值注入。
+  这样开发与 arp-e2e 使用同一份 compose 定义，但值完全来自各自 `--env-file`。
+- 证据：`docker compose --env-file .env.e2e config --quiet` 通过；arp-e2e migrate 成功，
+  seed/smoke/Playwright 全部通过。
+
+### D008 Nginx 上游解析
+
+- 现象：api 容器重建后 web 返回 502；Nginx 在启动时缓存了 `api` 的旧容器 IP。
+- 修正：`resolver 127.0.0.11 valid=10s` + `set $api_upstream http://api:8000`，
+  proxy_pass 使用变量在请求时解析。web 重建后 `/api/v1/health/live` 返回 200。
+
+### D009 Playwright 浏览器
+
+- 本机 Playwright 1.64.1 要求 Chromium 1248；`playwright install chromium` 在本地网络
+  超过 10 分钟未完成下载。
+- 修正：配置支持 `E2E_BROWSER_CHANNEL`，验证时使用系统 Chrome（真实浏览器）执行
+  `npm run test:e2e`，3 个场景通过。默认仍为 Playwright Chromium；干净环境应运行
+  `npx playwright install chromium`。
+
 ### D005 依赖下载源
 
 - 现象：官方 PyPI 到本机连接在多轮 `uv sync` 中长时间停滞（>20 分钟，缓存不再增长）；

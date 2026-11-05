@@ -1,8 +1,9 @@
 FROM node:24-alpine AS build
 
 WORKDIR /app
+ARG NPM_REGISTRY=https://registry.npmmirror.com
 COPY frontend/package.json frontend/package-lock.json ./
-RUN npm ci --no-audit --no-fund
+RUN npm ci --registry=${NPM_REGISTRY} --no-audit --no-fund
 COPY frontend/ .
 RUN npm run build
 

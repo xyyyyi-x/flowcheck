@@ -5,7 +5,9 @@
 !frontend/.env.example
 
 # Python
+.venv/
 backend/.venv/
+demo-api/.venv/
 __pycache__/
 *.py[cod]
 .pytest_cache/
@@ -19,6 +21,8 @@ frontend/dist/
 frontend/coverage/
 frontend/test-results/
 frontend/playwright-report/
+frontend/e2e/playwright-report/
+frontend/e2e/test-results/
 frontend/.vite/
 
 # 运行产物

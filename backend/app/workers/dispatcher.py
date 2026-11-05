@@ -5,6 +5,8 @@ from __future__ import annotations
 import signal
 import time
 from collections.abc import Callable
+from concurrent.futures import ThreadPoolExecutor
+from concurrent.futures import TimeoutError as FuturesTimeout
 from dataclasses import dataclass
 from datetime import UTC, datetime, timedelta
 
@@ -21,6 +23,21 @@ from app.workers.repository import QUEUE_DEADLINE
 DISPATCH_INTERVAL = 2
 RECONCILE_INTERVAL = 5
 DISPATCH_BATCH = 50
+PUBLISH_TIMEOUT = 3.0
+
+
+def publish_with_timeout(
+    publish: Callable[[str], None], run_id: str, timeout: float = PUBLISH_TIMEOUT
+) -> None:
+    """单次发布最多等待 timeout 秒；超时线程不阻塞维护循环。"""
+    executor = ThreadPoolExecutor(max_workers=1)
+    future = executor.submit(publish, run_id)
+    try:
+        future.result(timeout=timeout)
+    except FuturesTimeout as exc:
+        raise TimeoutError("publish timeout") from exc
+    finally:
+        executor.shutdown(wait=False)
 
 
 @dataclass
@@ -63,7 +80,7 @@ def dispatch_due(
                 continue
 
         try:
-            publish(str(run_id))
+            publish_with_timeout(publish, str(run_id))
         except Exception:
             new_attempt = attempt_count + 1
             delay = min(2**new_attempt, 30)

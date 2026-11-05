@@ -10,10 +10,22 @@ from sqlalchemy import select, update
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.db.models import Run, RunOutbox
-from app.workers.dispatcher import dispatch_due
+from app.workers.dispatcher import dispatch_due, publish_with_timeout
 from app.workers.reconcile import reconcile_runs
 from app.workers.repository import claim_run
 from tests.integration.test_run_creation import create_run, setup
+
+
+def test_publish_timeout_is_bounded() -> None:
+    import time
+
+    started = time.monotonic()
+    try:
+        publish_with_timeout(lambda _: time.sleep(2), "run", timeout=0.05)
+        raise AssertionError("should time out")
+    except TimeoutError:
+        pass
+    assert time.monotonic() - started < 1.0
 
 
 async def test_dispatch_success_marks_sent(

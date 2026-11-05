@@ -30,12 +30,17 @@ services:
     build:
       context: ./backend
       dockerfile: Dockerfile
+      target: base
     command: ["alembic", "upgrade", "head"]
-    env_file:
-      - .env
     environment:
+      APP_DATABASE_URL: ${APP_DATABASE_URL:?APP_DATABASE_URL is required}
+      APP_SYNC_DATABASE_URL: ${APP_SYNC_DATABASE_URL:?APP_SYNC_DATABASE_URL is required}
+      APP_REDIS_BROKER_URL: ${APP_REDIS_BROKER_URL:?APP_REDIS_BROKER_URL is required}
+      APP_REDIS_CACHE_URL: ${APP_REDIS_CACHE_URL:?APP_REDIS_CACHE_URL is required}
       APP_JWT_SECRET: ${APP_JWT_SECRET:?APP_JWT_SECRET is required}
       APP_ENCRYPTION_KEY: ${APP_ENCRYPTION_KEY:?APP_ENCRYPTION_KEY is required}
+      TARGET_ORIGINS: ${TARGET_ORIGINS:?TARGET_ORIGINS is required}
+      CORS_ORIGINS: ${CORS_ORIGINS:-}
     depends_on:
       db:
         condition: service_healthy
@@ -45,11 +50,16 @@ services:
     build:
       context: ./backend
       dockerfile: Dockerfile
-    env_file:
-      - .env
+      target: base
     environment:
+      APP_DATABASE_URL: ${APP_DATABASE_URL:?APP_DATABASE_URL is required}
+      APP_SYNC_DATABASE_URL: ${APP_SYNC_DATABASE_URL:?APP_SYNC_DATABASE_URL is required}
+      APP_REDIS_BROKER_URL: ${APP_REDIS_BROKER_URL:?APP_REDIS_BROKER_URL is required}
+      APP_REDIS_CACHE_URL: ${APP_REDIS_CACHE_URL:?APP_REDIS_CACHE_URL is required}
       APP_JWT_SECRET: ${APP_JWT_SECRET:?APP_JWT_SECRET is required}
       APP_ENCRYPTION_KEY: ${APP_ENCRYPTION_KEY:?APP_ENCRYPTION_KEY is required}
+      TARGET_ORIGINS: ${TARGET_ORIGINS:?TARGET_ORIGINS is required}
+      CORS_ORIGINS: ${CORS_ORIGINS:-}
     depends_on:
       db:
         condition: service_healthy
@@ -72,10 +82,38 @@ services:
       retries: 20
     restart: unless-stopped
 
+  demo-api:
+    build:
+      context: ./demo-api
+      dockerfile: Dockerfile
+    environment:
+      DEMO_USERNAME: ${DEMO_USERNAME:-demo}
+      DEMO_PASSWORD: ${DEMO_PASSWORD:?DEMO_PASSWORD is required}
+      DEMO_FAULT_MODE: ${DEMO_FAULT_MODE:-}
+      DEMO_WRITE_DELAY_S: ${DEMO_WRITE_DELAY_S:-0}
+      DEMO_DB_PATH: /data/demo.db
+    volumes:
+      - demo-data:/data
+    ports:
+      - "127.0.0.1:${DEMO_PORT:-8001}:8001"
+    healthcheck:
+      test:
+        [
+          "CMD",
+          "python",
+          "-c",
+          "import urllib.request; urllib.request.urlopen('http://127.0.0.1:8001/health')",
+        ]
+      interval: 5s
+      timeout: 3s
+      retries: 20
+    restart: unless-stopped
+
   worker:
     build:
       context: ./backend
       dockerfile: Dockerfile
+      target: base
     command:
       [
         "celery",
@@ -85,15 +123,21 @@ services:
         "--loglevel=INFO",
         "--concurrency=2",
       ]
-    env_file:
-      - .env
     environment:
+      APP_DATABASE_URL: ${APP_DATABASE_URL:?APP_DATABASE_URL is required}
+      APP_SYNC_DATABASE_URL: ${APP_SYNC_DATABASE_URL:?APP_SYNC_DATABASE_URL is required}
+      APP_REDIS_BROKER_URL: ${APP_REDIS_BROKER_URL:?APP_REDIS_BROKER_URL is required}
+      APP_REDIS_CACHE_URL: ${APP_REDIS_CACHE_URL:?APP_REDIS_CACHE_URL is required}
       APP_JWT_SECRET: ${APP_JWT_SECRET:?APP_JWT_SECRET is required}
       APP_ENCRYPTION_KEY: ${APP_ENCRYPTION_KEY:?APP_ENCRYPTION_KEY is required}
+      TARGET_ORIGINS: ${TARGET_ORIGINS:?TARGET_ORIGINS is required}
+      CORS_ORIGINS: ${CORS_ORIGINS:-}
     depends_on:
       db:
         condition: service_healthy
       redis:
+        condition: service_healthy
+      demo-api:
         condition: service_healthy
       migrate:
         condition: service_completed_successfully
@@ -103,12 +147,17 @@ services:
     build:
       context: ./backend
       dockerfile: Dockerfile
+      target: base
     command: ["python", "-m", "app.workers.dispatcher"]
-    env_file:
-      - .env
     environment:
+      APP_DATABASE_URL: ${APP_DATABASE_URL:?APP_DATABASE_URL is required}
+      APP_SYNC_DATABASE_URL: ${APP_SYNC_DATABASE_URL:?APP_SYNC_DATABASE_URL is required}
+      APP_REDIS_BROKER_URL: ${APP_REDIS_BROKER_URL:?APP_REDIS_BROKER_URL is required}
+      APP_REDIS_CACHE_URL: ${APP_REDIS_CACHE_URL:?APP_REDIS_CACHE_URL is required}
       APP_JWT_SECRET: ${APP_JWT_SECRET:?APP_JWT_SECRET is required}
       APP_ENCRYPTION_KEY: ${APP_ENCRYPTION_KEY:?APP_ENCRYPTION_KEY is required}
+      TARGET_ORIGINS: ${TARGET_ORIGINS:?TARGET_ORIGINS is required}
+      CORS_ORIGINS: ${CORS_ORIGINS:-}
     depends_on:
       db:
         condition: service_healthy
@@ -131,3 +180,4 @@ services:
 
 volumes:
   arp-db-data:
+  demo-data:

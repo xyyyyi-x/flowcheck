@@ -27,6 +27,7 @@ def make_env(e2e: bool) -> str:
     jwt_secret = secrets.token_urlsafe(48)
     encryption_key = base64.urlsafe_b64encode(secrets.token_bytes(32)).decode("ascii")
     demo_password = random_password(24)
+    platform_demo_password = random_password(24)
     env_name = "e2e" if e2e else "development"
     lines = [
         f"# 由 scripts/init_env.py 生成的 {env_name} 配置（{Path(__file__).name}）。不要提交本文件。",
@@ -46,6 +47,8 @@ def make_env(e2e: bool) -> str:
         f"DEMO_PORT={ports['demo']}",
         "DEMO_USERNAME=demo",
         f"DEMO_PASSWORD={demo_password}",
+        "PLATFORM_DEMO_USERNAME=demo_owner",
+        f"PLATFORM_DEMO_PASSWORD={platform_demo_password}",
         "",
     ]
     return "\n".join(lines)

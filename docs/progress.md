@@ -1,7 +1,7 @@
 # 开发进度
 
 更新时间：2026-11-05（Asia/Shanghai）。
-当前状态：T01–T13 已通过验证（真实 Compose/Playwright 验收进行中）；T14 进行中。
+当前状态：T01–T15 全部完成；P0 验收 A01–A19 通过（A18 窄屏未完整验证），P1 A20 通过。
 执行方式：用户后续通过Claude Code接DeepSeek实施。
 
 | 任务 | 内容 | 状态 | 验证证据 |
@@ -19,8 +19,8 @@
 | T11 | 报告/SSE | 已完成 | 报告/SSE 集成测试；全量 187 passed |
 | T12 | 前端账号/配置 | 已完成 | typecheck、13 unit、build 通过 |
 | T13 | 前端用例/执行/报告 | 已完成 | typecheck、25 unit、build 通过 |
-| T14 | Demo/部署/P0验收 | 未开始 | 无 |
-| T15 | 统计缓存/P1交付 | 未开始 | 无 |
+| T14 | Demo/部署/P0验收 | 已完成 | 真实 Compose + smoke + Playwright 3 passed；中断 336.4s；Redis 停机恢复 |
+| T15 | 统计缓存/P1交付 | 已完成 | 5 summary 集成测试；10k 基准 4.18/4.27 ms |
 
 ## 已确认
 
@@ -305,6 +305,54 @@ T14：Demo API、真实 Compose 部署、Playwright/E2E 与三项演示。
   - 报告页展示脱敏请求/响应、断言、提取与中断不确定性提示。
 - 未运行：真实浏览器/真实 Worker（T14）。
 - 下一任务：T14 Demo API、Compose 与 E2E 验收。
+
+### T14 真实 Demo、完整部署与 P0 验收（2026-11-05）
+
+- 涉及文件：`demo-api/*`、`scripts/{seed_demo,smoke,reset_demo,interrupt_demo,demo_common}.py`、
+  `frontend/e2e/*`、`compose.yaml`、`infra/nginx.conf`、`README.md`、`docs/{architecture,demo,verification}.md`。
+- 实现需求/验收：A07/A08/A11/A13/A14/A17–A19；G2/G5/G7。
+- 实际命令与结果：
+  - Demo API `pytest tests -q` → 4 passed。
+  - 开发 Compose：seed 成功；smoke `run_status=passed`，五步 passed。
+  - 故障注入 `DEMO_FAULT_MODE=title_mismatch`：step1/2 passed、step3 failed、step4/5 skipped；
+    恢复后 reset 清空 Demo 文章 1 条。
+  - 独立 `arp-e2e`：迁移/健康依赖成功；seed/smoke 五步 passed；
+    Playwright（系统 Chrome）3 passed：成功、断言失败、用户隔离。
+  - Compose 隔离集成：72 passed（T14 时点；T15 新增 summary 后复跑见 verification）。
+- 调试记录（均写入 decisions.md）：
+  - Dockerfile 最后 stage 是 test，需为后端服务显式 `target: base`。
+  - 服务内硬编码 `env_file: .env` 破坏 E2E 隔离，改为 `${VAR}` 插值。
+  - api 重建后 Nginx 缓存旧 IP → 502；改为 Docker DNS + 变量 proxy_pass。
+  - worker 运行期缺少 kombu 依赖 `packaging`，加入运行时依赖。
+  - Playwright Chromium 下载停滞，改用系统 Chrome（`E2E_BROWSER_CHANNEL`）。
+- 收尾证据：
+  - Worker 强杀：336.4s 后 interrupted/WORKER_INTERRUPTED；step2 error、3–5 skipped；
+    重启 worker 不重放。
+  - Redis 停机：提交仍 queued，outbox attempt=1/BROKER_UNAVAILABLE，恢复后补发并五步 passed。
+  - 发现并修复：Celery producer 连接重试使单次发布超过 6 秒；dispatcher 增加 3 秒线程级超时，
+    并关闭发布重试。
+- 下一任务：T15 统计缓存与交付材料（同批完成）。
+
+### T15 项目统计、缓存、性能证据与最终交接（2026-11-05）
+
+- 涉及文件：`app/modules/summary/*`、`tests/integration/test_summary.py`、
+  `frontend/src/api/summary.ts`、`OverviewView.vue`、`scripts/benchmark_summary.py`、
+  `docs/{architecture,demo,resume-notes,verification}.md`。
+- 实现需求/验收：A20。
+- 实际命令与结果：
+  - `pytest tests/integration/test_summary.py -q` → 5 passed。
+  - 全量后端：193 passed（115 unit + 78 integration）。
+  - `benchmark_summary.py`（隔离 test 库，10,000 runs）：
+    summary 平均 4.18 ms，列表第一页 4.27 ms；计划使用 `ix_runs_project_created`。
+  - 前端 typecheck、25 unit、build 通过。
+- 关键实现：
+  - 真实 SQL `GROUP BY status`；active = queued+running；pass_rate=passed/(passed+failed)，
+    0 分母为 null；error/interrupted 不计入业务通过率。
+  - Redis `summary:v1:{project_id}` TTL 30s；命中保留原 computed_at 并 cache_hit=true；
+    Redis 异常静默回退数据库。
+  - owner 检查由路由依赖先于缓存执行。
+  - Overview 展示统计与“最多 30 秒延迟”、计算时间、缓存标记。
+- 下一任务：收尾中断/Redis 证据并更新 verification，最终提交。
 
 ## 每任务追加记录模板
 
