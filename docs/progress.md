@@ -1,7 +1,7 @@
 # 开发进度
 
 更新时间：2026-11-05（Asia/Shanghai）。
-当前状态：T01–T05 已通过验证；T06 进行中。
+当前状态：T01–T06 已通过验证；T07 进行中。
 执行方式：用户后续通过Claude Code接DeepSeek实施。
 
 | 任务 | 内容 | 状态 | 验证证据 |
@@ -11,7 +11,7 @@
 | T03 | 认证/项目/owner | 已完成 | auth/owner 集成测试通过；全量 40 passed |
 | T04 | 环境加密/secret协议 | 已完成 | 环境/加密测试通过；全量 40 passed |
 | T05 | DSL/用例CRUD | 已完成 | DSL/selectors/cases 测试通过；全量 85 passed |
-| T06 | OpenAPI导入 | 未开始 | 无 |
+| T06 | OpenAPI导入 | 已完成 | 解析/导入/并发测试通过；全量 104 passed |
 | T07 | 渲染/取值/断言 | 未开始 | 无 |
 | T08 | HTTP/脱敏/执行器 | 未开始 | 无 |
 | T09 | 快照/幂等提交 | 未开始 | 无 |
@@ -35,7 +35,7 @@ Vue 3、PostgreSQL、模块化单体、项目owner隔离、本地OpenAPI JSON、
 
 ## 当前待办
 
-继续 T06：本地 OpenAPI JSON 元数据导入（有界、无外部引用）。
+继续 T07：模板渲染、受限取值、JSON 断言纯逻辑。
 
 ## 任务记录
 
@@ -142,6 +142,25 @@ Vue 3、PostgreSQL、模块化单体、项目owner隔离、本地OpenAPI JSON、
   - 整体 PUT 携带 version，旧版本 409；`source_api_id` 仅溯源且必须同项目。
 - 未运行：T06 导入；执行期模板渲染在 T07。
 - 下一任务：T06 OpenAPI 元数据导入。
+
+### T06 OpenAPI 元数据导入（2026-11-05）
+
+- 涉及文件：`app/modules/imports/{parser,service,router,schemas}.py`、
+  `tests/unit/test_openapi_import.py`、`tests/integration/test_import_api.py`、
+  `tests/fixtures/openapi_minimal.json`。
+- 实现需求/验收：A04。
+- 实际命令与结果：`pytest tests/unit tests/integration -q` → 104 passed；Ruff/format 通过。
+- 关键实现：
+  - 文件 ≤2MiB、UTF-8 JSON、openapi 3.0.x/3.1.x、paths 对象、支持 operation ≤200。
+  - 全文档本地 `$ref` 限制：非 `#/` 开头一律 422；参数/RequestBody 引用最大深度 8，
+    循环引用 422；schema 内部 `$ref` 保留符号不递归展开。
+  - JSON 遍历节点 ≤20000、深度 ≤32；移除 example/examples/default。
+  - path 参数与 operation 参数按 (name,in) 合并，operation 覆盖；cookie 跳过并警告。
+  - 写入使用 PostgreSQL `ON CONFLICT (project_id, method, path) DO NOTHING`，
+    并发导入不会 500 或产生重复；解析在事务前完成。
+  - warnings 截断到 100 条并附截断说明。
+- 调试记录：导入测试中“非法 operation”文档被完整校验拦截，数据库无残留行（符合预期）。
+- 下一任务：T07 模板渲染、选择器取值与断言纯逻辑。
 
 ## 每任务追加记录模板
 

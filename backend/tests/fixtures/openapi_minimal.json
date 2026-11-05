@@ -1,0 +1,63 @@
+{
+  "openapi": "3.1.0",
+  "info": {"title": "Demo API", "version": "1.0.0"},
+  "servers": [{"url": "http://ignored.example.com"}],
+  "paths": {
+    "/articles": {
+      "parameters": [
+        {"name": "limit", "in": "query", "schema": {"type": "integer"}},
+        {"name": "X-Trace", "in": "header", "schema": {"type": "string"}}
+      ],
+      "get": {
+        "summary": "文章列表",
+        "parameters": [
+          {"name": "limit", "in": "query", "required": true, "schema": {"type": "number"}}
+        ],
+        "responses": {"200": {"description": "ok"}}
+      },
+      "post": {
+        "summary": "创建文章",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "title": {"type": "string", "example": "示例标题", "default": "x"},
+                  "content": {"type": "string", "examples": ["a"]},
+                  "nested": {"$ref": "#/components/schemas/Nested"}
+                },
+                "required": ["title"]
+              }
+            }
+          }
+        },
+        "responses": {"201": {"description": "created"}}
+      },
+      "head": {"responses": {}}
+    },
+    "/articles/{id}": {
+      "get": {
+        "summary": "文章详情",
+        "parameters": [
+          {"name": "id", "in": "path", "required": true, "schema": {"type": "string"}},
+          {"name": "session", "in": "cookie", "schema": {"type": "string"}}
+        ],
+        "responses": {"200": {"description": "ok"}}
+      },
+      "delete": {
+        "summary": "删除文章",
+        "parameters": [
+          {"name": "id", "in": "path", "required": true, "schema": {"type": "string"}}
+        ],
+        "responses": {"204": {"description": "deleted"}}
+      }
+    }
+  },
+  "components": {
+    "schemas": {
+      "Nested": {"type": "object", "properties": {"id": {"type": "string"}}}
+    }
+  }
+}
