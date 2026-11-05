@@ -2,11 +2,15 @@ import { createRouter, createWebHistory } from "vue-router";
 
 import ProjectLayout from "../layouts/ProjectLayout.vue";
 import ApisView from "../views/ApisView.vue";
+import CaseEditorView from "../views/CaseEditorView.vue";
+import CasesView from "../views/CasesView.vue";
 import EnvironmentsView from "../views/EnvironmentsView.vue";
 import LoginView from "../views/LoginView.vue";
 import OverviewView from "../views/OverviewView.vue";
 import ProjectsView from "../views/ProjectsView.vue";
 import RegisterView from "../views/RegisterView.vue";
+import RunReportView from "../views/RunReportView.vue";
+import RunsView from "../views/RunsView.vue";
 
 export const router = createRouter({
   history: createWebHistory(),
@@ -37,8 +41,17 @@ export const router = createRouter({
           component: EnvironmentsView,
         },
         { path: "apis", name: "apis", component: ApisView },
+        { path: "cases", name: "cases", component: CasesView },
+        { path: "cases/new", name: "case-new", component: CaseEditorView },
+        {
+          path: "cases/:caseId/edit",
+          name: "case-edit",
+          component: CaseEditorView,
+        },
+        { path: "runs", name: "runs", component: RunsView },
       ],
     },
+    { path: "/runs/:runId", name: "run-report", component: RunReportView },
     { path: "/:pathMatch(.*)*", redirect: "/projects" },
   ],
 });

@@ -41,6 +41,8 @@ function logout(): void {
         <el-menu-item :index="`/projects/${projectId}/overview`">项目概览</el-menu-item>
         <el-menu-item :index="`/projects/${projectId}/environments`">环境配置</el-menu-item>
         <el-menu-item :index="`/projects/${projectId}/apis`">接口定义</el-menu-item>
+        <el-menu-item :index="`/projects/${projectId}/cases`">测试用例</el-menu-item>
+        <el-menu-item :index="`/projects/${projectId}/runs`">运行记录</el-menu-item>
       </el-menu>
       <div class="sidebar-footer">
         <span>{{ auth.user?.username }}</span>
