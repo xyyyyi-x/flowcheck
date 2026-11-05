@@ -2,6 +2,8 @@
 
 更新时间：2026-11-05（Asia/Shanghai）。
 当前状态：T01–T15 全部完成；P0 验收 A01–A19 通过（A18 窄屏未完整验证），P1 A20 通过。
+最终交付：最新代码已重建开发 Compose，seed + smoke 五步 passed；E2E 截图与验证记录见
+docs/verification.md。
 执行方式：用户后续通过Claude Code接DeepSeek实施。
 
 | 任务 | 内容 | 状态 | 验证证据 |

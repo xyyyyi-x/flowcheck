@@ -1,6 +1,10 @@
 # 验证记录
 
 验证日期：2026-11-05（Asia/Shanghai）
+代码版本：`6a478f8`（T01–T15 共 17 个聚焦提交，`git log --oneline` 可复查）
+最终复跑：以最新代码重建开发 Compose（`docker compose up -d --build`），
+seed 幂等复用原项目/环境/用例，smoke 再次 `run_status=passed`（五步），
+Web 代理 `/api/v1/health/live` 返回 200。
 OS：Windows 11 Home China 10.0.26200
 Python：3.12.16（uv 管理；宿主另有 3.14，仅用于运行 uv/标准库脚本）
 Node：24.22.1；npm 11.19.1
