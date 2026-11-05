@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import os
 from collections.abc import AsyncIterator, Iterator
 
 import pytest
@@ -65,8 +66,8 @@ def build_test_settings(database_url: str | None = None) -> Settings:
         app_encryption_key="u5nM7Qp0jXk2r8T4wY6zA1bC3dE5fG7hI9jK0lM2nO4=",
         app_database_url=async_url,
         app_sync_database_url=sync_url,
-        app_redis_broker_url="redis://127.0.0.1:56379/0",
-        app_redis_cache_url="redis://127.0.0.1:56379/1",
+        app_redis_broker_url=os.environ.get("APP_REDIS_BROKER_URL", "redis://127.0.0.1:56500/0"),
+        app_redis_cache_url=os.environ.get("APP_REDIS_CACHE_URL", "redis://127.0.0.1:56500/1"),
         target_origins="http://demo-api:8001",
     )
 

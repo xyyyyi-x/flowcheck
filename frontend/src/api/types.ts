@@ -231,3 +231,15 @@ export interface RunCreated {
   status: RunStatus;
   reused: boolean;
 }
+
+export interface ProjectSummary {
+  total_runs: number;
+  passed_runs: number;
+  failed_runs: number;
+  error_runs: number;
+  interrupted_runs: number;
+  active_runs: number;
+  pass_rate: number | null;
+  computed_at: string;
+  cache_hit: boolean;
+}
