@@ -49,6 +49,7 @@ def create_app(settings: Settings | None = None) -> FastAPI:
     from app.modules.health.router import router as health_router
     from app.modules.imports.router import router as imports_router
     from app.modules.projects.router import router as projects_router
+    from app.modules.runs.router import router as runs_router
 
     app.include_router(health_router, prefix="/api/v1")
     app.include_router(auth_router, prefix="/api/v1")
@@ -56,6 +57,7 @@ def create_app(settings: Settings | None = None) -> FastAPI:
     app.include_router(environments_router, prefix="/api/v1")
     app.include_router(cases_router, prefix="/api/v1")
     app.include_router(imports_router, prefix="/api/v1")
+    app.include_router(runs_router, prefix="/api/v1")
     return app
 
 

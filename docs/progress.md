@@ -1,7 +1,7 @@
 # 开发进度
 
 更新时间：2026-11-05（Asia/Shanghai）。
-当前状态：T01–T08 已通过验证；T09 进行中。
+当前状态：T01–T09 已通过验证；T10 进行中。
 执行方式：用户后续通过Claude Code接DeepSeek实施。
 
 | 任务 | 内容 | 状态 | 验证证据 |
@@ -14,7 +14,7 @@
 | T06 | OpenAPI导入 | 已完成 | 解析/导入/并发测试通过；全量 104 passed |
 | T07 | 渲染/取值/断言 | 已完成 | 纯函数测试 91 unit passed |
 | T08 | HTTP/脱敏/执行器 | 已完成 | transport/redaction/runner 单测；115 unit passed |
-| T09 | 快照/幂等提交 | 未开始 | 无 |
+| T09 | 快照/幂等提交 | 已完成 | 提交/幂等/快照集成测试；全量 161 passed |
 | T10 | Worker/outbox/中断恢复 | 未开始 | 无 |
 | T11 | 报告/SSE | 未开始 | 无 |
 | T12 | 前端账号/配置 | 未开始 | 无 |
@@ -35,7 +35,7 @@ Vue 3、PostgreSQL、模块化单体、项目owner隔离、本地OpenAPI JSON、
 
 ## 当前待办
 
-继续 T09：不可变运行快照与幂等提交。
+继续 T10：Celery 执行、outbox 发布与中断回收。
 
 ## 任务记录
 
@@ -197,6 +197,25 @@ Vue 3、PostgreSQL、模块化单体、项目owner隔离、本地OpenAPI JSON、
     缺变量在 HTTP 前失败；预算耗尽标记 interrupted/RUN_TIMEOUT。
 - 未运行：真实 Redis/Celery 链路（T10）；报告序列化（T11）。
 - 下一任务：T09 运行快照与幂等提交。
+
+### T09 运行快照与幂等提交（2026-11-05）
+
+- 涉及文件：`app/modules/runs/{schemas,service,repository,router}.py`、
+  `tests/integration/{test_run_creation,test_run_idempotency,test_run_snapshot}.py`。
+- 实现需求/验收：A10、A12；G3/G4 的提交侧。
+- 实际命令与结果：`pytest tests/unit tests/integration -q` → 161 passed；Ruff/format 通过。
+- 关键实现：
+  - POST 202，同一事务写入 Run（加密快照）、pending StepResult、`run.queued` 事件、
+    pending outbox；不调用 Redis。
+  - `Idempotency-Key` 必填 UUID；同项目同 key 同 case/env 返回原 run（reused=true），
+    不同指纹 409；并发冲突由唯一约束兜底后读取原记录。
+  - 快照包含 schema_version=1、case/env 名称与版本、stub 步骤、解密变量/header、
+    target_origin、limits、captured_at；整段 Fernet 加密。
+  - 提交前校验 case/env 同项目、提取器名与环境变量冲突、origin 白名单。
+- 调试记录：并发提交时 `IntegrityError` 发生在 flush 而非 commit；捕获后 rollback 使
+  ORM Project 过期，访问 `project.id` 触发同步懒加载（MissingGreenlet）。
+  改为在函数入口保存 `project_id` 局部变量。
+- 下一任务：T10 Celery 执行、outbox 发布与中断回收。
 
 ## 每任务追加记录模板
 
