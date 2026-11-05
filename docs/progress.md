@@ -1,7 +1,7 @@
 # 开发进度
 
 更新时间：2026-11-05（Asia/Shanghai）。
-当前状态：T01–T04 已通过验证；T05 进行中。
+当前状态：T01–T05 已通过验证；T06 进行中。
 执行方式：用户后续通过Claude Code接DeepSeek实施。
 
 | 任务 | 内容 | 状态 | 验证证据 |
@@ -10,7 +10,7 @@
 | T02 | 数据库/迁移/测试底座 | 已完成 | 6 integration passed（真实 PG）；Compose test 18 passed |
 | T03 | 认证/项目/owner | 已完成 | auth/owner 集成测试通过；全量 40 passed |
 | T04 | 环境加密/secret协议 | 已完成 | 环境/加密测试通过；全量 40 passed |
-| T05 | DSL/用例CRUD | 未开始 | 无 |
+| T05 | DSL/用例CRUD | 已完成 | DSL/selectors/cases 测试通过；全量 85 passed |
 | T06 | OpenAPI导入 | 未开始 | 无 |
 | T07 | 渲染/取值/断言 | 未开始 | 无 |
 | T08 | HTTP/脱敏/执行器 | 未开始 | 无 |
@@ -35,7 +35,7 @@ Vue 3、PostgreSQL、模块化单体、项目owner隔离、本地OpenAPI JSON、
 
 ## 当前待办
 
-继续 T05：流程 DSL 校验、受限选择器与用例 CRUD。
+继续 T06：本地 OpenAPI JSON 元数据导入（有界、无外部引用）。
 
 ## 任务记录
 
@@ -123,6 +123,25 @@ Vue 3、PostgreSQL、模块化单体、项目owner隔离、本地OpenAPI JSON、
   密文断言中不存在已知 secret 明文。
 - 遗留问题：`GET /target-origins` 目前要求登录（依 C06 全局规则），前端 T12 接入。
 - 下一任务：T05 流程 DSL 校验与用例 CRUD。
+
+### T05 流程 DSL 校验与用例 CRUD（2026-11-05）
+
+- 涉及文件：`app/domain/{contracts,template,selectors}.py`、`app/modules/cases/*`、
+  `tests/unit/test_case_schema.py`、`tests/unit/test_selector_parser.py`、
+  `tests/integration/test_cases.py`。
+- 实现需求/验收：A05、A06（静态部分）；C02/C04/C05 的 DSL。
+- 实际命令与结果：`pytest tests/unit tests/integration -q` → 85 passed；Ruff/format 通过。
+- 关键实现：
+  - 步骤 1..20，步骤 UUID 唯一，跨步骤提取器名唯一；每步恰有一个 status_code 断言。
+  - path 仅接受单斜杠开头的相对模板；path_params 键集合必须等于路径参数；
+    禁止 `{{}}` 出现在 path 本身；禁止点路径、query、fragment、origin。
+  - 受限选择器 token parser（`$`、`.field`、`[n]`），不依赖完整 JSONPath/eval。
+  - 模板 `{{name}}` 静态校验；非模板标记导致的未闭合/非法名称拒绝。
+  - body 中 password/token/access_token/refresh_token/api_key/client_secret/secret
+    只允许完整模板，字面量 422。
+  - 整体 PUT 携带 version，旧版本 409；`source_api_id` 仅溯源且必须同项目。
+- 未运行：T06 导入；执行期模板渲染在 T07。
+- 下一任务：T06 OpenAPI 元数据导入。
 
 ## 每任务追加记录模板
 
