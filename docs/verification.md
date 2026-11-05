@@ -1,7 +1,7 @@
 # 验证记录
 
 验证日期：2026-11-05（Asia/Shanghai）
-代码版本：`6a478f8`（T01–T15 共 17 个聚焦提交，`git log --oneline` 可复查）
+代码版本：`6a478f8`（T01–T15 共 15 个任务提交 + 最终文档提交，`git log --oneline` 可复查）
 最终复跑：以最新代码重建开发 Compose（`docker compose up -d --build`），
 seed 幂等复用原项目/环境/用例，smoke 再次 `run_status=passed`（五步），
 Web 代理 `/api/v1/health/live` 返回 200。
