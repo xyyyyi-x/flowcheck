@@ -1,7 +1,7 @@
 # 开发进度
 
 更新时间：2026-11-05（Asia/Shanghai）。
-当前状态：T01–T09 已通过验证；T10 进行中。
+当前状态：T01–T10 已通过验证（真实 Compose broker 链路留待 T14）；T11 进行中。
 执行方式：用户后续通过Claude Code接DeepSeek实施。
 
 | 任务 | 内容 | 状态 | 验证证据 |
@@ -15,7 +15,7 @@
 | T07 | 渲染/取值/断言 | 已完成 | 纯函数测试 91 unit passed |
 | T08 | HTTP/脱敏/执行器 | 已完成 | transport/redaction/runner 单测；115 unit passed |
 | T09 | 快照/幂等提交 | 已完成 | 提交/幂等/快照集成测试；全量 161 passed |
-| T10 | Worker/outbox/中断恢复 | 未开始 | 无 |
+| T10 | Worker/outbox/中断恢复 | 已完成（真实 broker 待 T14） | claim/sink/outbox/reconcile 集成；全量 178 passed |
 | T11 | 报告/SSE | 未开始 | 无 |
 | T12 | 前端账号/配置 | 未开始 | 无 |
 | T13 | 前端用例/执行/报告 | 未开始 | 无 |
@@ -35,7 +35,7 @@ Vue 3、PostgreSQL、模块化单体、项目owner隔离、本地OpenAPI JSON、
 
 ## 当前待办
 
-继续 T10：Celery 执行、outbox 发布与中断回收。
+继续 T11：安全报告、持久化 SSE 与断线恢复。
 
 ## 任务记录
 
@@ -216,6 +216,34 @@ Vue 3、PostgreSQL、模块化单体、项目owner隔离、本地OpenAPI JSON、
   ORM Project 过期，访问 `project.id` 触发同步懒加载（MissingGreenlet）。
   改为在函数入口保存 `project_id` 局部变量。
 - 下一任务：T10 Celery 执行、outbox 发布与中断回收。
+
+### T10 Celery 执行、outbox 发布与中断回收（2026-11-05）
+
+- 涉及文件：`app/workers/{repository,sink,execution,tasks,celery_app,dispatcher,reconcile,snapshot}.py`、
+  `compose.yaml`、`backend/Dockerfile`、
+  `tests/integration/{test_worker_claim,test_worker_sink,test_outbox,test_reconcile,test_worker_soft_timeout}.py`。
+- 实现需求/验收：A11、A13、A14；G4/G5。
+- 实际命令与结果：
+  - `pytest tests/unit tests/integration -q` → 178 passed。
+  - `docker compose config --quiet` → 通过。
+  - **未运行**：真实 Redis/Celery 链路的 worker claim（需完整 Compose 栈，T14 执行）。
+- 关键实现：
+  - `claim_run` 单条 `UPDATE ... WHERE status='queued' AND created_at>now-300s RETURNING`；
+    重复消息返回 None；仅抢占者写 `run.started`。
+  - `PostgresRunSink` 每操作独立同步 Session + 短事务；step 状态以 `pending→running→终态`
+    条件更新作为栅栏；run 终结使用 `run_id + execution_token + status='running'` CAS；
+    终态同事务补写 running→error、pending→skipped 与 `run.finished`。
+  - dispatcher：每批 ≤50，发前重查 run 仍 queued 且未过期；网络发布不持事务；
+    失败固定 BROKER_UNAVAILABLE，退避 min(2^attempt,30)；成功标 sent。
+  - reconcile：queued>300s → error/DISPATCH_TIMEOUT；running 超 330s →
+    interrupted/WORKER_INTERRUPTED；均 CAS 并同事务写事件。
+  - SoftTimeLimitExceeded 尽力 finish(interrupted/RUN_TIMEOUT)；未处理异常 finish(error/INTERNAL_ERROR)。
+  - Celery：JSON、ignore_result、acks_late=false、prefetch=1、concurrency=2、无 autoretry。
+  - Compose 新增 migrate/worker/dispatcher；api/worker/dispatcher 等待迁移成功。
+- 调试记录：并发 claim 测试使用两个线程/独立 Session 验证唯一抢占；超时回收用注入 now
+  避免真实等待 300/330 秒。
+- 遗留：真实 broker 端到端在 T14 验收；dispatcher 发布路径尚未对真实 Redis 运行。
+- 下一任务：T11 报告、持久化 SSE 与恢复。
 
 ## 每任务追加记录模板
 

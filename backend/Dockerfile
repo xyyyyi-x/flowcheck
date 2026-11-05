@@ -13,6 +13,8 @@ COPY pyproject.toml uv.lock ./
 RUN uv sync --frozen --no-dev
 
 COPY app ./app
+COPY alembic.ini ./
+COPY migrations ./migrations
 
 ENV PATH="/app/.venv/bin:$PATH"
 EXPOSE 8000
@@ -22,8 +24,6 @@ CMD ["uvicorn", "app.main:create_app", "--factory", "--host", "0.0.0.0", "--port
 FROM base AS test
 
 RUN uv sync --frozen
-COPY alembic.ini ./
-COPY migrations ./migrations
 COPY tests ./tests
 
 CMD ["pytest", "tests/integration", "-q"]

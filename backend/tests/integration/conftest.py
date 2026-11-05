@@ -11,6 +11,7 @@ from sqlalchemy import create_engine, text
 from sqlalchemy.ext.asyncio import async_sessionmaker, create_async_engine
 
 from app.core.config import Settings
+from app.db.sync_session import build_sync_engine, build_sync_session_factory
 from app.main import create_app
 from tests.integration.db_utils import alembic_config, sync_database_url
 
@@ -68,6 +69,15 @@ def build_test_settings(database_url: str | None = None) -> Settings:
         app_redis_cache_url="redis://127.0.0.1:56379/1",
         target_origins="http://demo-api:8001",
     )
+
+
+@pytest.fixture
+def sync_factory() -> Iterator:
+    engine = build_sync_engine(sync_database_url())
+    try:
+        yield build_sync_session_factory(engine)
+    finally:
+        engine.dispose()
 
 
 @pytest.fixture
