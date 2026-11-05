@@ -1,7 +1,7 @@
 # 开发进度
 
 更新时间：2026-11-05（Asia/Shanghai）。
-当前状态：T01–T07 已通过验证；T08 进行中。
+当前状态：T01–T08 已通过验证；T09 进行中。
 执行方式：用户后续通过Claude Code接DeepSeek实施。
 
 | 任务 | 内容 | 状态 | 验证证据 |
@@ -13,7 +13,7 @@
 | T05 | DSL/用例CRUD | 已完成 | DSL/selectors/cases 测试通过；全量 85 passed |
 | T06 | OpenAPI导入 | 已完成 | 解析/导入/并发测试通过；全量 104 passed |
 | T07 | 渲染/取值/断言 | 已完成 | 纯函数测试 91 unit passed |
-| T08 | HTTP/脱敏/执行器 | 未开始 | 无 |
+| T08 | HTTP/脱敏/执行器 | 已完成 | transport/redaction/runner 单测；115 unit passed |
 | T09 | 快照/幂等提交 | 未开始 | 无 |
 | T10 | Worker/outbox/中断恢复 | 未开始 | 无 |
 | T11 | 报告/SSE | 未开始 | 无 |
@@ -35,7 +35,7 @@ Vue 3、PostgreSQL、模块化单体、项目owner隔离、本地OpenAPI JSON、
 
 ## 当前待办
 
-继续 T08：有界 HTTP transport、脱敏与线性执行器。
+继续 T09：不可变运行快照与幂等提交。
 
 ## 任务记录
 
@@ -178,6 +178,25 @@ Vue 3、PostgreSQL、模块化单体、项目owner隔离、本地OpenAPI JSON、
   - `response_time_lt` 使用未取整浮点毫秒严格小于；404 期望 404 可通过。
   - 提取器：secret 必须非空字符串；普通提取只接受 JSON 标量。
 - 下一任务：T08 有界 HTTP、脱敏与线性执行器。
+
+### T08 有界 HTTP、脱敏与线性执行器（2026-11-05）
+
+- 涉及文件：`app/domain/{ports,redaction,runner}.py`、`app/infra/http_transport.py`、
+  `tests/unit/{test_transport,test_redaction,test_runner}.py`。
+- 实现需求/验收：A06–A09、A15、A16 的执行与脱敏基础。
+- 实际命令与结果：`pytest tests/unit -q` → 115 passed；Ruff/format 通过。
+- 关键实现：
+  - `HttpxTransport`：exact origin 校验、Host/Content-Length 等拒绝、
+    `trust_env=false`、`follow_redirects=false`、分项 timeout、流式读取 ≤1MiB、
+    单次发送无重试；302 原样返回不跟随；HTTP 4xx/5xx 不自动判失败。
+  - 脱敏：secret 注册表替换已知值；Authorization/Cookie/Set-Cookie/X-API-Key 整体遮蔽；
+    敏感 JSON 键递归遮蔽；URL 只保留 origin/path 模板/query 键名；
+    预览 ≤8192 字节；非 JSON 或 omit_response_body 时正文省略。
+  - 执行器：独立上下文、逐步开始/保存、断言全部计算、失败即停；
+    断言通过后才发布提取变量；断言失败仍收集 secret 提取值用于脱敏；
+    缺变量在 HTTP 前失败；预算耗尽标记 interrupted/RUN_TIMEOUT。
+- 未运行：真实 Redis/Celery 链路（T10）；报告序列化（T11）。
+- 下一任务：T09 运行快照与幂等提交。
 
 ## 每任务追加记录模板
 

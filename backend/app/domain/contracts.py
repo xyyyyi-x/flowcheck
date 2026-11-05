@@ -6,6 +6,7 @@ import json
 import re
 import uuid
 from dataclasses import dataclass
+from datetime import datetime
 from typing import Annotated, Any, Literal
 
 from pydantic import (
@@ -71,6 +72,42 @@ class AssertionOutcome:
     selector: str | None = None
     expected_safe: Any = None
     actual_safe: Any = None
+
+
+@dataclass
+class SafeStepResult:
+    status: str
+    elapsed_ms: int | None = None
+    request_safe: dict[str, Any] | None = None
+    response_safe: dict[str, Any] | None = None
+    assertions_safe: list[dict[str, Any]] | None = None
+    extracts_safe: list[dict[str, Any]] | None = None
+    error_code: str | None = None
+
+
+@dataclass
+class RunOutcome:
+    status: str
+    error_code: str | None
+    last_completed_position: int
+
+
+@dataclass
+class RunSnapshot:
+    schema_version: int
+    run_id: uuid.UUID
+    case_id: uuid.UUID
+    case_name: str
+    case_version: int
+    environment_id: uuid.UUID
+    environment_name: str
+    environment_version: int
+    target_origin: str
+    variables: list[dict[str, Any]]
+    common_headers: list[dict[str, Any]]
+    steps: list[StepDefinition]
+    limits: dict[str, int]
+    captured_at: datetime
 
 
 def _validate_name(name: str) -> str:
